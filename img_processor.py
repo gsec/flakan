@@ -2,33 +2,43 @@
 # -*- coding: utf_8 -*-
 
 import os, sys, time
-import scipy.ndimage as ndimage
 import numpy as np
-#from numpy import *
+from PIL        import Image
+from scipy      import ndimage
 from matplotlib import pyplot as plt
-import matplotlib.gridspec as gridspec
-import matplotlib.patheffects as PathEffects
+from matplotlib import gridspec
+from matplotlib import patheffects
 from fit_exp_2d import Exp2D as fit
-from PIL import Image
 
 ######################
 #  Global Variables  #
 ######################
 
-calibration_data = "140115_zscale.dat"
-#min_flake_size = 1000
+rp = os.path.dirname(os.path.realpath(sys.argv[0]))
+calibration_data = os.path.join(rp, "140115_zscale.dat")
 
 ############################
 #  Image Processing Class  #
 ############################
-
 
 class IM(object):
   _filename = ""
   _data = None
   _mask = None
   _scale = 1
-  #_zscale = lambda x: x
+
+  def __init__(self, filename, min_flake_size=1000, max_flake_size=100000,
+      threshold=100, channel=-1, backgroundpicture='background.tif',
+      darkcount=None):
+    """init"""
+    self._filename = filename
+    self.open(filename, backgroundpicture, darkcount, channel)
+    self.mask = threshold
+    #self.label_im = threshold #(threshold, 0)
+    self.zscale = self.z_calibration()
+    #self.zscale = lambda x: x
+    self.minsize = min_flake_size
+    self.maxsize = max_flake_size
 
   @property
   def scale(self):
@@ -37,7 +47,6 @@ class IM(object):
   @scale.setter
   def scale(self, value=1):
     self._scale = value
-
   @property
   def data(self):
     """image data values as a numpy array."""
@@ -46,7 +55,6 @@ class IM(object):
   def data(self, data):
     """image data values as a numpy array."""
     self._data = data
-
   @property
   def mask(self):
     """image mask as a numpy array."""
@@ -54,111 +62,61 @@ class IM(object):
   @mask.setter
   def mask(self, threshold):
     self._mask = self.data > threshold
-
   @property
   def masked_image(self):
-    '''
-    masked_image():
-    Returns a masked image array
-    '''
     return np.ma.masked_array(self.data, self.mask)
 
-  def __init__(self, filename, min_flake_size=1000, max_flake_size=100000,
-      threshold=1500,  ChannelNumber=1, backgroundpicture='Img_018b_bg.JPG'):
-    """init"""
-    self._filename = filename
-    self.open(filename,  ChannelNumber,  backgroundpicture)
-    self.mask = threshold
-    #self.label_im = threshold #(threshold, 0)
-    self.zscale = self.z_calibration()
-    #self.zscale = lambda x: x
-    self.minsize = min_flake_size
-    self.maxsize = max_flake_size
-
-  def open(self, flakes_image,  ChannelNumber,  background_image):
+  def open(self, flakes_image, background_image,
+                darkcount_image, channel=None):
     '''
-    open(filename):
-    Opens an image with given filename.
+    Open flake and background image, normalizes it to the specified range and
+    type (uint8(0..255), float32, etc.) and writes the resulting array into
+    self.data
     '''
-
-    #bg_im = Image.open(backgroundpicture)
-    #pim = Image.open(filename)
-    #fl_im = Image.open(filename)
-    #im = np.fromstring(pim.tostring(), dtype=np.uint16)
-    #im.shape = pim.size[::-1]
-
-    #x = ChannelNumber
-    #self.data = np.asarray(pim)[:, :, 0] # - np.asarray(pim.convert("L", rgb2xyzG))
-
-    #im = np.asarray(fl_im)[:, :, x]
-    #im = array(im ,  dtype = float32)
-
-    #imb = np.asarray(bg_im)[:, :, x]
-    #imb = array(imb ,  dtype = float32)
-
-    #imd = clip(255 - (imb - im),  0,  255)
-    #imdiv = clip(im / imb * 255,  0,  255)
-
-    channel = ChannelNumber
-
-    #fl_im, bg_im =  (plt.imread(pic)[:, :, channel].astype(np.float32,
-                    #copy=False) for pic in (flakes_image, background_image))
-                    # channel selection is now done at tiff conversion
-    fl_im, bg_im =  (plt.imread(pic).astype(np.float32,
-                    copy=False) for pic in (flakes_image, background_image))
-
-    #self.data = norm_im = np.clip(fl_im / bg_im, 0, 1)
-    #cal_im = (fl_im - bg_im)
-    #self.data = (cal_im - cal_im.min()) / (cal_im.max() - cal_im.min())
-    self.data = bg_im / fl_im
+    # check for grayscale picture
+    if channel == -1:
+      slicer = ()
+    # else take the specified color channel
+    else:
+      slicer = (slice(None), slice(None), channel)
+    # is there a dark count image?
+    #if darkcount_image:
+      #pictures = (flakes_image, background_image, darkcount_image)
+      #imgs = fl_im, bg_im, dc_im
+    #else:
+      #pictures = (flakes_image, background_image)
+      #imgs = fl_im, bg_im
+    pictures = (flakes_image, background_image, darkcount_image)
+    fl_im, bg_im, dc_im = (plt.imread(pic)[slicer].astype(np.float32,
+                    copy=False) for pic in pictures)
 
 
-    #print 'Bild'
-    #print im
-    #print 'Minus'
-    #print imd
-    #print 'Dividiert'
-    #print imdiv
-    #print '1Channel'
-    #print np.asarray(fl_im)[:, :, 0]
-    #print '2Channel'
-    #print np.asarray(fl_im)[:, :, 1]
-    #print '3Channel'
-    #print np.asarray(fl_im)[:, :, 2]
-    #self.data = array(imdiv,  dtype=uint8 )
 
+
+    print("image max", np.amax(fl_im))
+    print("image min", np.nanmin(fl_im))
+    # Normalize and Scale Image Data to 0..255
+    norm_im = (bg_im - dc_im) / (fl_im - dc_im)
+    self.data = norm_im
+
+    print("norm max", np.amax(norm_im))
+    print("norm min", np.nanmin(norm_im))
+
+
+    #d = np.amax(norm_im) - np.nanmin(norm_im)
+
+    #scaled_im = (norm_im - np.nanmin(norm_im)) / d * 255
+    #self.data = scaled_im.astype(np.uint8)
 
     print 'Data: \n'
     print self.data
 
-
-    #a = Image.open('Tv58.png')
-    #print np.asarray(a)
-    #self.data = np.asarray(a)
-    #print 'break'
-    #print 'break'
-    #test = self.data[:][:][0]
-    #print test
-    #pim.save('Test.png')
-    #BrainR.save('TestR.png')
-    #BrainG.save('TestG.png')
-    #BrainB.save('TestB.png')
-
     fig = plt.figure(1, (12,10))
     fig.clf()
     ax = fig.add_subplot(111)
-    #im = ax.imshow(array(imdiv,  dtype=uint8 ))
     im = ax.imshow(self.data)
     fig.colorbar(im)
-    #plt.savefig(flakes_image[:-4] + '_DataUINTGreenDivided.png')
     plt.savefig(flakes_image[:-4] + '_normalized.png')
-
-
-
-
-    #bgim = Image.open('Img_005.JPG')
-    #bg = bgim.convert("RGB", rgb2xyzR)
-    #bg.save('Testbg.png')
 
   def label(self):
     """
@@ -167,14 +125,15 @@ class IM(object):
     * then for each flake it masks again, removing other flakes
       and append it to the `flakes` dict
     """
-    label_image, num_labels = ndimage.label(np.invert(self.mask))
+    # previously here was `np.invert(self.mask)` this now leads to wrong
+    # detection
+    label_image, num_labels = ndimage.label((self.mask))
     flakes = {}
     for label in range(num_labels +1): # TODO: better use label key/value pairs
       data = self.data
       mask = np.ma.masked_not_equal(label_image, label).mask
       flake = self.Flake(data, mask)
       if flake.size > self.minsize and flake.size < self.maxsize:
-        #print("FLAKE::::: IN IMGPROC", flake)
         flakes[label] = flake
         flakes[label].zscale = self.zscale
     return flakes
@@ -215,9 +174,7 @@ class IM(object):
 
     @property
     def size(self):
-      #size = ndimage.sum(self.mask, self.label_im, self.labels)
       size = np.sum(np.ma.negative(self.data.mask))
-      #print("SIZE OF size: ---------- ", sys.getsizeof(size))
       return size*self.scale**2
 
     @property
@@ -274,5 +231,5 @@ class IM(object):
       h = self.height
       #h_err = self.heights[1][i]
       h_err = 0
-      effects=[PathEffects.withStroke(linewidth=0.9, foreground='w')]
+      effects=[patheffects.withStroke(linewidth=0.9, foreground='w')]
       ax.annotate('%04.0f,%04.0f\n%04.0f\n%04.0f+-%0.4f\n'%(x,y,s,h,h_err) + text, (y,x), path_effects=effects)
