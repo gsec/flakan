@@ -31,13 +31,13 @@ default_path    = os.path.join('..', 'tests', 'raws', 'converted')
 default_tag     = '.tif'
 
 # Flake parameters
-flake_params = {'_min_flake_size' : 1e3,
-                '_max_flake_size' : 1e6,
-                '_threshold'      : 0.2,
-                '_ch_color'       : channel.green,
-                '_path'           : os.path.join('raws', 'converted'),
-                '_background'     : os.path.join(default_path, 'background.tiff'),
-                }
+#flake_params = {'_min_flake_size' : 1e3,
+                #'_max_flake_size' : 1e6,
+                #'_threshold'      : 1.1,
+                #'_ch_color'       : channel.green,
+                #'_path'           : os.path.join('raws', 'converted'),
+                #'_background'     : os.path.join(default_path, 'background.tiff'),
+                #}
 
 # Global CONSTANTS:
 # 500 um equals 300 Pixel in 4xMag for the OlympusMicroscope, OLD
@@ -45,7 +45,7 @@ AREA_SCALE      = 5.0 / 3.0
 NM_TO_UM        = 0.001
 #FILETAG         = 'a.JPG'
 SAMPLE_INFO     = 'TestSampleForCalibration'
-FOLDERTAG       = 'analysis_ch_' + str(flake_params['_ch_color'])
+FOLDERTAG       = 'analysis_ch_green'# + str(flake_params['_ch_color'])
 
 #CH_COLOR        = channel.green
 #BACKGROUND      = 'Img_018a_bg.JPG'
@@ -147,15 +147,28 @@ def clean(_path):
       print(f)
       shutil.rmtree(f)
 
+def usage():
+  print()
+  print("FlakAn a flake analyzer script")
+  print("-"*50)
+  print("Usage: ", sys.argv[0], "[option] <folder>")
+  print("""
+        -h  --help      : Print this help
+        -t  --tag       : Specify file ending (default is '.tif' )
+        -p  --path      : Specify path with image files. Default is
+                          '../tests/raw/converted'
+        --clean         : Clean up target path. This deletes all '.png' files
+                          and folders containing '_analysis_ch_' in their name.
+        """)
 ##########
 #  main  #
 ##########
 
 def main(path, tag):
   # Flake parameters
-  flake_params = {'_min_flake_size' : 1000,
-                  '_max_flake_size' : 100000,
-                  '_threshold'      : 2,
+  flake_params = {'_min_flake_size' : 1e3,
+                  '_max_flake_size' : 1e5,
+                  '_threshold'      : 60,
                   '_ch_color'       : channel.green,
                   '_path'           : path,
                   '_background'     : os.path.join(path, 'background.tiff'),
@@ -164,6 +177,7 @@ def main(path, tag):
 
   raw_files = [os.path.abspath(os.path.join(path,f)) for f in os.listdir(path)
     if f.endswith(tag)]
+  raw_files.sort()
   print("Files List:")
   print('\n'.join(raw_files))
   """
@@ -172,6 +186,7 @@ def main(path, tag):
   """
   wfd_perfile = []
   for filepath in raw_files:
+    #os.chdir(os.path.dirname(filepath))
     print("-"*50)
     print(filepath + ' is being analyzed')
     # only raw_files with endfiletag analyzed -> no png files etc.
@@ -217,8 +232,8 @@ if __name__ == '__main__':
   try:
     # Short option syntax: "hv:"
     # Long option syntax: "help" or "verbose="
-    opts, args = getopt.getopt(sys.argv[1:], "p:t:",
-        ["path=", "tag=", "clean="])
+    opts, args = getopt.getopt(sys.argv[1:], "hp:t:",
+        ["help", "path=", "tag=", "clean="])
 
   except getopt.GetoptError, err:
     # Print debug info
@@ -228,7 +243,7 @@ if __name__ == '__main__':
 
   for option, argument in opts:
     if option in ("-h", "--help"):
-      print("Usage specs")
+      usage()
       sys.exit()
 
     elif option in ("-p", "--path"):
@@ -240,7 +255,8 @@ if __name__ == '__main__':
 
     elif option in ("--clean"):
       clean(argument)
-      sys.exit("The folder '" + os.path.abspath(argument) +
+      print("The folder '" + os.path.abspath(argument) +
           "' has been cleaned up.")
+      sys.exit()
 
   main(default_path, default_tag)

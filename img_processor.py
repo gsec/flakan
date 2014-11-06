@@ -2,7 +2,7 @@
 # -*- coding: utf_8 -*-
 
 import os, sys, time
-import scipy.ndimage as ndimage
+from scipy import ndimage
 import numpy as np
 #from numpy import *
 from matplotlib import pyplot as plt
@@ -110,7 +110,12 @@ class IM(object):
     #self.data = norm_im = np.clip(fl_im / bg_im, 0, 1)
     #cal_im = (fl_im - bg_im)
     #self.data = (cal_im - cal_im.min()) / (cal_im.max() - cal_im.min())
-    self.data = bg_im / fl_im
+    norm_im = bg_im / fl_im
+    d = np.amax(norm_im) - np.nanmin(norm_im)
+
+    #normalize onto 0..255
+    scaled_im = (norm_im - np.nanmin(norm_im)) / d * 255
+    self.data = scaled_im.astype(np.uint8)
 
 
     #print 'Bild'
@@ -167,11 +172,16 @@ class IM(object):
     * then for each flake it masks again, removing other flakes
       and append it to the `flakes` dict
     """
-    label_image, num_labels = ndimage.label(np.invert(self.mask))
+    label_image, num_labels = ndimage.label((self.mask))
+    #with open("label_"+str(num_labels), 'w') as lf:
+    print("Label Image: \t", label_image)
+    print("num labels: \t", num_labels)
     flakes = {}
     for label in range(num_labels +1): # TODO: better use label key/value pairs
+      #np.savetxt(str(label), label_image)
       data = self.data
       mask = np.ma.masked_not_equal(label_image, label).mask
+      #print("MASK:   ", mask)
       flake = self.Flake(data, mask)
       if flake.size > self.minsize and flake.size < self.maxsize:
         #print("FLAKE::::: IN IMGPROC", flake)
