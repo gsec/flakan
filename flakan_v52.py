@@ -25,10 +25,8 @@ $ ufraw-batch --out-path=converted --out-type=tif --out-depth=16 *
 .CR2 --grayscale=mixer --grayscale-mixer=0,1,0
 
 """
-Color           = namedtuple('Color', ['red', 'green', 'blue'])
-channel         = Color(0, 1, 2)
-default_path    = os.path.join('..', 'tests', 'raws', 'converted')
-default_tag     = '.tif'
+Color           = namedtuple('Color', ['grey', 'red', 'green', 'blue'])
+channel         = Color(-1, 0, 1, 2)
 
 # Flake parameters
 #flake_params = {'_min_flake_size' : 1e3,
@@ -41,11 +39,13 @@ default_tag     = '.tif'
 
 # Global CONSTANTS:
 # 500 um equals 300 Pixel in 4xMag for the OlympusMicroscope, OLD
+#DEFAULT_PATH    = os.path.join('..', 'tests', 'raws', 'converted')
+DEFAULT_PATH    = os.curdir
+DEFAULT_TAG     = '.tif'
 AREA_SCALE      = 5.0 / 3.0
 NM_TO_UM        = 0.001
-#FILETAG         = 'a.JPG'
 SAMPLE_INFO     = 'TestSampleForCalibration'
-FOLDERTAG       = 'analysis_ch_green'# + str(flake_params['_ch_color'])
+FOLDERTAG       = 'single_flake_analysis'
 
 #CH_COLOR        = channel.green
 #BACKGROUND      = 'Img_018a_bg.JPG'
@@ -57,7 +57,7 @@ FOLDERTAG       = 'analysis_ch_green'# + str(flake_params['_ch_color'])
 #  functions  #
 ###############
 
-def IMAnalysis(_fname=None, _path=None, _min_flake_size=None,
+def IMAnalysis(_fname=None, _path=None, _min_flake_size=None, _darkcount=None,
     _max_flake_size=None, _threshold=None, _ch_color=None, _background=None):
   '''
   Analysis for the picture `_filename`. Channel sets the color channel that is
@@ -68,7 +68,7 @@ def IMAnalysis(_fname=None, _path=None, _min_flake_size=None,
   fig.clf()
   axs = fig.add_subplot(111)
   im  = imgp.IM(_fname, _min_flake_size, _max_flake_size, _threshold,
-                _ch_color, _background)
+                _ch_color, _background, _darkcount)
   flakes = im.label()
   out_dir = os.path.splitext(_fname)[0] + '_' + FOLDERTAG
   try:
@@ -143,7 +143,7 @@ def clean(_path):
     if f.endswith('.png'):
       print(f)
       os.remove(f)
-    elif '_analysis_ch_' in f:
+    elif FOLDERTAG in f:
       print(f)
       shutil.rmtree(f)
 
@@ -164,16 +164,25 @@ def usage():
 #  main  #
 ##########
 
-def main(path, tag):
+def main(path=None, tag=None):
+
+  # paths and file tags:
+  if path is None:
+    path = os.curdir
+  os.chdir(os.path.abspath(path))
+
+  if tag is None:
+    tag = '.tif'
+
   # Flake parameters
   flake_params = {'_min_flake_size' : 1e3,
                   '_max_flake_size' : 1e5,
-                  '_threshold'      : 60,
-                  '_ch_color'       : channel.green,
+                  '_threshold'      : 1.7,
+                  '_ch_color'       : channel.grey,
                   '_path'           : path,
                   '_background'     : os.path.join(path, 'background.tiff'),
+                  '_darkcount'      : os.path.join(path, 'darkcount.tiff'),
                   }
-  print("PATH:", path)
 
   raw_files = [os.path.abspath(os.path.join(path,f)) for f in os.listdir(path)
     if f.endswith(tag)]
@@ -234,6 +243,7 @@ if __name__ == '__main__':
     # Long option syntax: "help" or "verbose="
     opts, args = getopt.getopt(sys.argv[1:], "hp:t:",
         ["help", "path=", "tag=", "clean="])
+    arg_tag = arg_path = None
 
   except getopt.GetoptError, err:
     # Print debug info
@@ -247,11 +257,10 @@ if __name__ == '__main__':
       sys.exit()
 
     elif option in ("-p", "--path"):
-      #verbose = argument
-      default_path = argument
+      arg_path = argument
 
     elif option in ("-t", "--tag"):
-      default_tag = argument
+      arg_tag = argument
 
     elif option in ("--clean"):
       clean(argument)
@@ -259,4 +268,4 @@ if __name__ == '__main__':
           "' has been cleaned up.")
       sys.exit()
 
-  main(default_path, default_tag)
+  main(arg_path, arg_tag)
