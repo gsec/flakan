@@ -90,23 +90,25 @@ class IM(object):
     fl_im, bg_im, dc_im = (plt.imread(pic)[slicer].astype(np.float32,
                     copy=False) for pic in pictures)
 
-
-
-
     print("image max", np.amax(fl_im))
     print("image min", np.nanmin(fl_im))
     # Normalize and Scale Image Data to 0..255
     norm_im = (bg_im - dc_im) / (fl_im - dc_im)
     self.data = norm_im
 
+    """
+    Scaling: Si = BGi-DCi / FLi-DCi     # operation precedence by space
+    Mapping onto {0,1}:
+      (BG-DC)_max = newmax --> 1
+      (DC)_min    = newmin --> 0
+    putting together:
+      normalized-x_i = Si-newmin / newmax-newmin
+    """
+    newmax = (2**16 - np.amax(dc_im))
+    print("Max value = ", newmax)
+
     print("norm max", np.amax(norm_im))
     print("norm min", np.nanmin(norm_im))
-
-
-    #d = np.amax(norm_im) - np.nanmin(norm_im)
-
-    #scaled_im = (norm_im - np.nanmin(norm_im)) / d * 255
-    #self.data = scaled_im.astype(np.uint8)
 
     print 'Data: \n'
     print self.data

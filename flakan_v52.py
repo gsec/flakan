@@ -28,15 +28,6 @@ $ ufraw-batch --out-path=converted --out-type=tif --out-depth=16 *
 Color           = namedtuple('Color', ['grey', 'red', 'green', 'blue'])
 channel         = Color(-1, 0, 1, 2)
 
-# Flake parameters
-#flake_params = {'_min_flake_size' : 1e3,
-                #'_max_flake_size' : 1e6,
-                #'_threshold'      : 1.1,
-                #'_ch_color'       : channel.green,
-                #'_path'           : os.path.join('raws', 'converted'),
-                #'_background'     : os.path.join(default_path, 'background.tiff'),
-                #}
-
 # Global CONSTANTS:
 # 500 um equals 300 Pixel in 4xMag for the OlympusMicroscope, OLD
 #DEFAULT_PATH    = os.path.join('..', 'tests', 'raws', 'converted')
@@ -46,12 +37,6 @@ AREA_SCALE      = 5.0 / 3.0
 NM_TO_UM        = 0.001
 SAMPLE_INFO     = 'TestSampleForCalibration'
 FOLDERTAG       = 'single_flake_analysis'
-
-#CH_COLOR        = channel.green
-#BACKGROUND      = 'Img_018a_bg.JPG'
-#THRESHOLD       = 200
-#MIN_FLAKE_SIZE  = 1000
-#MAX_FLAKE_SIZE  = 100000
 
 ###############
 #  functions  #
@@ -140,7 +125,7 @@ def clean(_path):
   #ff = (f for f in files if f.endswith('.png') or '_analysis_ch_' in f)
   print( "DELETING:")
   for f in files:
-    if f.endswith('.png'):
+    if f.endswith('.png') or (SAMPLE_INFO in f and f.endswith('dat')):
       print(f)
       os.remove(f)
     elif FOLDERTAG in f:
@@ -155,10 +140,11 @@ def usage():
   print("""
         -h  --help      : Print this help
         -t  --tag       : Specify file ending (default is '.tif' )
-        -p  --path      : Specify path with image files. Default is
-                          '../tests/raw/converted'
+        -p  --path      : Specify path with image files. Default is current
+                          directory.
         --clean         : Clean up target path. This deletes all '.png' files
-                          and folders containing '_analysis_ch_' in their name.
+                          and folders containing specified 'FOLDERTAG' in their
+                          name.
         """)
 ##########
 #  main  #
@@ -175,17 +161,17 @@ def main(path=None, tag=None):
     tag = '.tif'
 
   # Flake parameters
-  flake_params = {'_min_flake_size' : 1e3,
-                  '_max_flake_size' : 1e5,
-                  '_threshold'      : 1.7,
+  flake_params = {'_min_flake_size' : 1.5e3,
+                  '_max_flake_size' : 2e5,
+                  '_threshold'      : 1.2,
                   '_ch_color'       : channel.grey,
                   '_path'           : path,
-                  '_background'     : os.path.join(path, 'background.tiff'),
-                  '_darkcount'      : os.path.join(path, 'darkcount.tiff'),
+                  '_background'     : 'background.tiff',
+                  '_darkcount'      : 'darkcount.tiff',
                   }
 
-  raw_files = [os.path.abspath(os.path.join(path,f)) for f in os.listdir(path)
-    if f.endswith(tag)]
+  #raw_files = [os.path.abspath(os.path.join(path,f)) for f in os.listdir(path)
+  raw_files = [f for f in os.listdir('.') if f.endswith(tag)]
   raw_files.sort()
   print("Files List:")
   print('\n'.join(raw_files))
