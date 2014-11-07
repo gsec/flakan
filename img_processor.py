@@ -15,7 +15,7 @@ from fit_exp_2d import Exp2D as fit
 ######################
 
 rp = os.path.dirname(os.path.realpath(sys.argv[0]))
-calibration_data = os.path.join(rp, "140115_zscale.dat")
+calibration_data = os.path.join(rp, "zscale_2014-01-15.dat")
 
 ############################
 #  Image Processing Class  #
