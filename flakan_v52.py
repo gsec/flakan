@@ -12,6 +12,9 @@ import img_processor as imgp
 from collections  import namedtuple
 from matplotlib   import pyplot as plt
 from itertools    import chain
+from subprocess   import call
+from glob         import glob
+
 
 ################
 #  parameters  #
@@ -143,7 +146,36 @@ def usage():
         --clean         : Clean up target path. This deletes all '.png' files
                           and folders containing specified 'FOLDERTAG' in their
                           name.
+        --raw2tif       : Requires path argument. Convert Raw CR2 files to 16bit
+                          greyscale tif images in target path with `ufraw` prior
+                          to processing them. Target path is created if needed.
         """)
+
+def raw2tif(path=None, channel=None):
+  if channel is None or channel == 'green':
+    """ Green channel is the standard """
+    mixer = '0,1,0'
+  elif channel == 'red':
+    mixer = '1,0,0'
+  elif channel == 'blue':
+    mixer = '0,0,1'
+  else:
+    raise NameError("Please specify a color from ['red', 'green', 'blue']")
+  mixer_arg =  '--grayscale-mixer=' + mixer
+
+  if path is None:
+    path = 'converted'
+  path_arg = '--out-path=' + path
+
+  try:
+    os.mkdir(path)
+    print("Directory '{0}' created".format(os.path.abspath(path)) )
+  except OSError:
+    print("Directory '{0}' already exists".format(os.path.abspath(path)) )
+
+  call(['ufraw-batch', path_arg, '--out-type=tif',
+    '--out-depth=16'] + glob('*.CR2') + ['--grayscale=mixer', mixer_arg])
+
 
 ##########
 #  main  #
@@ -227,7 +259,7 @@ if __name__ == '__main__':
     # Short option syntax: "hv:"
     # Long option syntax: "help" or "verbose="
     opts, args = getopt.getopt(sys.argv[1:], "hp:t:",
-        ["help", "path=", "tag=", "clean="])
+        ["help", "path=", "tag=", "clean=", "raw2tif="])
     arg_tag = arg_path = None
 
   except getopt.GetoptError, err:
@@ -252,5 +284,9 @@ if __name__ == '__main__':
       print("\nThe folder '" + os.path.abspath(argument) +
           "' has been cleaned up.")
       sys.exit()
+
+    elif option in ("--raw2tif"):
+      print("Converting Raw Images")
+      raw2tif(argument)
 
   main(arg_path, arg_tag)
