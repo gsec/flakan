@@ -30,7 +30,6 @@ channel         = Color(-1, 0, 1, 2)
 
 # Global CONSTANTS:
 # 500 um equals 300 Pixel in 4xMag for the OlympusMicroscope, OLD
-#DEFAULT_PATH    = os.path.join('..', 'tests', 'raws', 'converted')
 DEFAULT_PATH    = os.curdir
 DEFAULT_TAG     = '.tif'
 AREA_SCALE      = 5.0 / 3.0
@@ -43,7 +42,7 @@ FOLDERTAG       = 'single_flake_analysis'
 ###############
 
 def IMAnalysis(_fname=None, _path=None, _min_flake_size=None, _darkcount=None,
-    _max_flake_size=None, _threshold=None, _ch_color=None, _background=None):
+    _max_flake_size=None, _threshold=None, _channel=None, _background=None):
   '''
   Analysis for the picture `_filename`. Channel sets the color channel that is
   chosen (Red = 0, Green = 1, Blue = 2).  `_background` is the filename for the
@@ -53,7 +52,7 @@ def IMAnalysis(_fname=None, _path=None, _min_flake_size=None, _darkcount=None,
   fig.clf()
   axs = fig.add_subplot(111)
   im  = imgp.IM(_fname, _min_flake_size, _max_flake_size, _threshold,
-                _ch_color, _background, _darkcount)
+                _channel, _background, _darkcount)
   flakes = im.label()
   out_dir = os.path.splitext(_fname)[0] + '_' + FOLDERTAG
   try:
@@ -122,7 +121,6 @@ def clean(_path):
   """ Removes all analysis files from the folder.  """
   ff = os.listdir(_path)
   files = (os.path.join(_path, f) for f in ff)
-  #ff = (f for f in files if f.endswith('.png') or '_analysis_ch_' in f)
   print( "DELETING:")
   for f in files:
     if f.endswith('.png') or (SAMPLE_INFO in f and f.endswith('dat')):
@@ -146,6 +144,7 @@ def usage():
                           and folders containing specified 'FOLDERTAG' in their
                           name.
         """)
+
 ##########
 #  main  #
 ##########
@@ -163,8 +162,8 @@ def main(path=None, tag=None):
   # Flake parameters
   flake_params = {'_min_flake_size' : 1.5e3,
                   '_max_flake_size' : 2e5,
-                  '_threshold'      : 1.2,
-                  '_ch_color'       : channel.grey,
+                  '_threshold'      : 0.2,
+                  '_channel'        : channel.grey,
                   '_path'           : path,
                   '_background'     : 'background.tiff',
                   '_darkcount'      : 'darkcount.tiff',
@@ -250,7 +249,7 @@ if __name__ == '__main__':
 
     elif option in ("--clean"):
       clean(argument)
-      print("The folder '" + os.path.abspath(argument) +
+      print("\nThe folder '" + os.path.abspath(argument) +
           "' has been cleaned up.")
       sys.exit()
 
