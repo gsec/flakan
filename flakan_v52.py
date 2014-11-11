@@ -1,8 +1,7 @@
 #! /usr/bin/env python
-# -*- coding: utf_8 -*- ########################################################
+# coding: utf-8        #########################################################
 #                       FlakAn - a flake analyzer script                       #
 ################################################################################
-
 
 from __future__ import print_function, division
 import os, sys, time, pickle, getopt, shutil
@@ -17,7 +16,6 @@ from matplotlib   import pyplot as plt
 from itertools    import chain
 from subprocess   import call
 from glob         import glob
-
 
 ################
 #  parameters  #
@@ -296,7 +294,7 @@ if __name__ == '__main__':
 
     elif option in ("--raw2tif"):
       print("Converting Raw Images")
-      raw2tif(argument)
+      raw2tif(argument[0], argument[1])
       sys.exit()      # comment this out, to start analysis after conversion
 
   main(arg_path, arg_tag)

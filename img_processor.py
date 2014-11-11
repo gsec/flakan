@@ -6,6 +6,7 @@ import numpy as np
 from PIL        import Image
 from scipy      import ndimage
 from matplotlib import pyplot as plt
+from matplotlib import colors as clt
 from matplotlib import gridspec
 from matplotlib import patheffects
 from fit_exp_2d import Exp2D as fit
@@ -14,7 +15,8 @@ from fit_exp_2d import Exp2D as fit
 #  Global Variables  #
 ######################
 
-rp = os.path.dirname(os.path.realpath(sys.argv[0]))
+#rp = os.path.dirname(os.path.realpath(sys.argv[0]))
+rp = os.path.dirname(os.path.realpath(__file__))
 calibration_data = os.path.join(rp, "zscale_2014-01-15.dat")
 
 ############################
@@ -95,8 +97,9 @@ class IM(object):
     x_S = data-min / max-min
     height is proportional to negative transmission
     x_N = 1 - x_S
+    now: only x_S
     """
-    norm_im = 1 - ((fl_im - dc_im) / (bg_im - dc_im))
+    norm_im = ((fl_im - dc_im) / (bg_im - dc_im))
 
     self.data = norm_im
     print 'Data: \n'
@@ -105,8 +108,10 @@ class IM(object):
     fig = plt.figure(1, (12,10))
     fig.clf()
     ax = fig.add_subplot(111)
-    im = ax.imshow(self.data)
+    normer = clt.Normalize(vmin=0, vmax=1)
+    im = ax.imshow(self.data, norm=normer, cmap='cubehelix')
     fig.colorbar(im)
+    # cmap atttribute
     plt.savefig(flakes_image[:-4] + '_normalized.png')
 
   def label(self):
