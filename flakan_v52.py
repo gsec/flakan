@@ -1,5 +1,8 @@
 #! /usr/bin/env python
-# -*- coding: utf_8 -*-
+# -*- coding: utf_8 -*- ########################################################
+#                       FlakAn - a flake analyzer script                       #
+################################################################################
+
 
 from __future__ import print_function, division
 import os, sys, time, pickle, getopt, shutil
@@ -8,7 +11,7 @@ module_path = os.path.join('C:', 'Data', 'Python_Modules')
 sys.path.append(module_path)
 
 import numpy as np
-import img_processor as imgp
+import img_processor as imgp          # numpy image processing module
 from collections  import namedtuple
 from matplotlib   import pyplot as plt
 from itertools    import chain
@@ -173,8 +176,14 @@ def raw2tif(path=None, channel=None):
   except OSError:
     print("Directory '{0}' already exists".format(os.path.abspath(path)) )
 
-  call(['ufraw-batch', path_arg, '--out-type=tif',
-    '--out-depth=16'] + glob('*.CR2') + ['--grayscale=mixer', mixer_arg])
+  try:
+    call(['ufraw-batch', path_arg, '--out-type=tif',
+      '--out-depth=16'] + glob('*.CR2') + ['--grayscale=mixer', mixer_arg])
+  except:
+    sys.exit(
+    """
+    Please install ufraw!\nIf you have, this is a error from the call function.
+    """)
 
 
 ##########
@@ -288,5 +297,6 @@ if __name__ == '__main__':
     elif option in ("--raw2tif"):
       print("Converting Raw Images")
       raw2tif(argument)
+      sys.exit()      # comment this out, to start analysis after conversion
 
   main(arg_path, arg_tag)
