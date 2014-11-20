@@ -63,7 +63,7 @@ class IM(object):
     return self._mask
   @mask.setter
   def mask(self, threshold):
-    self._mask = self.data > threshold
+    self._mask = self.data < threshold
   @property
   def masked_image(self):
     return np.ma.masked_array(self.data, self.mask)
@@ -179,7 +179,7 @@ class IM(object):
       #h_min, h_max, pos_min, pos_max = ndimage.extrema(self.data, self.label_im, self.labels)
       # imshow(ndimage.binary_dilation(a.data.mask, iterations=10))
       #error = h_max - h_min
-      area = 10
+      area = 1
       x,y = self.center_of_mass
       x = int(x)
       y = int(y)
@@ -202,8 +202,9 @@ class IM(object):
       y = int(y)
       d = self.data[x-area:x+area, y-area:y+area]
       height = d.mean()
+      standdev = np.std(d)
       #height = self.data.mean()
-      return height
+      return height,  standdev
 
     @property
     def center_of_mass(self):
@@ -224,8 +225,8 @@ class IM(object):
     def annotate(self, ax, text=""):
       x,y = self.center_of_mass
       s = self.size
-      h = self.height
+      h,  h_err = self.rawheight
       #h_err = self.heights[1][i]
-      h_err = 0
+      #h_err = 0
       effects=[patheffects.withStroke(linewidth=0.9, foreground='w')]
-      ax.annotate('%04.0f,%04.0f\n%04.0f\n%04.0f+-%0.4f\n'%(x,y,s,h,h_err) + text, (y,x), path_effects=effects)
+      ax.annotate('%04.0f,%04.0f\n%04.0f\n%04f+-%0.4f\n'%(x,y,s,h,h_err) + text, (y,x), path_effects=effects)

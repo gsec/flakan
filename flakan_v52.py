@@ -199,9 +199,9 @@ def main(path=None, tag=None):
     tag = '.tif'
 
   # Flake parameters
-  flake_params = {'_min_flake_size' : 1.5e3,
+  flake_params = {'_min_flake_size' : 2.5e3,
                   '_max_flake_size' : 2e5,
-                  '_threshold'      : 0.2,
+                  '_threshold'      : 0.8,
                   '_channel'        : channel.grey,
                   '_path'           : path,
                   '_background'     : 'background.tiff',
@@ -294,7 +294,7 @@ if __name__ == '__main__':
 
     elif option in ("--raw2tif"):
       print("Converting Raw Images")
-      raw2tif(argument[0], argument[1])
+      raw2tif(argument)
       sys.exit()      # comment this out, to start analysis after conversion
 
   main(arg_path, arg_tag)
